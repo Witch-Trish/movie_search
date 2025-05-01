@@ -44,7 +44,7 @@ Follow these steps to download movie_search from GitHub and get it running on yo
    ```
    Example:
    ```bash
-   git clone https://github.com/username/movie_search.git
+   git clone https://github.com/Witch-Trish/movie_search.git
    ```
 3. Navigate to the project directory:
    ```bash
