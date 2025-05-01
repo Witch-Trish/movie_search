@@ -1,5 +1,5 @@
-from .database import MovieDatabase
-from .utils import center_text
+from movie_search.database import MovieDatabase
+from movie_search.utils import center_text
 from tabulate import tabulate
 
 def handle_post_search():
@@ -10,14 +10,21 @@ def handle_post_search():
             ["2", "Exit"]
         ]
         print(center_text(tabulate(menu, headers=["Option", "Description"], tablefmt="grid")))
-        choice = input(center_text("Choose your option (1-2): ").strip())
+        print("Choose your option (1-2): ", end="")
+        choice = input().strip()
+
+        if not choice:
+            print("Input cannot be empty or just spaces. Choose 1 or 2")
+            continue
+
+        if choice not in ["1", "2"]:
+            print("Incorrect choice. Choose 1 or 2")
+            continue
 
         if choice == "1":
             return True
         elif choice == "2":
             return False
-        else:
-            print(center_text("Incorrect choice. Choose 1 or 2"))
 
 def handle_menu_choice():
     while True:
@@ -27,24 +34,31 @@ def handle_menu_choice():
             ["2", "Exit the program"]
         ]
         print(center_text(tabulate(menu, headers=["Option", "Description"], tablefmt="grid")))
-        choice = input(center_text("Select option (1-2): ").strip())
+        print("Select option (1-2): ", end="")
+        choice = input().strip()
+
+        if not choice:
+            print("Input cannot be empty or just spaces. Choose 1 or 2")
+            continue
+
+        if choice not in ["1", "2"]:
+            print("Incorrect choice. Choose 1 or 2")
+            continue
 
         if choice == "1":
             return True
         elif choice == "2":
             return False
-        else:
-            print(center_text("Incorrect choice. Choose 1 or 2"))
 
 def main():
     try:
         db = MovieDatabase()
     except Exception as e:
-        print(center_text(f"Database initialization error: {e}"))
+        print(f"Database initialization error: {e}")
         return
 
     while True:
-        print(center_text("\nWelcome to the Movie Search Engine! Choose an option from the menu below:"))
+        print(center_text("\nWelcome to movie_search! Choose an option from the menu below:"))
         menu = [
             ["1", "By keyword"],
             ["2", "By genre and year"],
@@ -54,13 +68,23 @@ def main():
             ["6", "Exit the program"]
         ]
         print(center_text(tabulate(menu, headers=["Option", "Description"], tablefmt="grid")))
-        choice = input(center_text("Select an option (1-6): ").strip())
+        print("Select an option (1-6): ", end="")
+        choice = input().strip()
+
+        if not choice:
+            print("Input cannot be empty or just spaces. Choose a number from 1 to 6")
+            continue
+
+        if choice not in ["1", "2", "3", "4", "5", "6"]:
+            print("Incorrect choice. Choose a number from 1 to 6")
+            continue
 
         try:
             if choice == "1":
-                keyword = input(center_text("Enter keyword: ").strip())
+                print("Enter keyword: ", end="")
+                keyword = input().strip()
                 if not keyword:
-                    raise ValueError("Keyword cannot be empty")
+                    raise ValueError("Keyword cannot be empty or just spaces")
                 results = db.search_movies("keyword", keyword)
                 if results:
                     print(center_text("\nFound movies:"))
@@ -77,28 +101,59 @@ def main():
                 continue
 
             elif choice == "2":
-                # Fetch available years
+                # Fetch available years and genres
                 years = db.get_available_years()
-                if years:
-                    print(center_text(f"Films are available from {min(years)} to {max(years)}"))
-                else:
-                    print(center_text("Unable to fetch available years"))
+                if not years:
+                    print("Unable to fetch available years")
+                    if not handle_menu_choice():
+                        break
+                    continue
+                min_year, max_year = min(years), max(years)
+                print(center_text(f"Films are available from {min_year} to {max_year}"))
 
-                # Fetch and display available genres
                 genres = db.get_available_genres()
-                if genres:
-                    print(center_text("\nAvailable genres:"))
-                    table = [[genre] for genre in genres]
-                    print(center_text(tabulate(table, headers=["Genre"], tablefmt="grid")))
-                else:
-                    print(center_text("Unable to fetch available genres"))
+                if not genres:
+                    print("Unable to fetch available genres")
+                    if not handle_menu_choice():
+                        break
+                    continue
+                print(center_text("\nAvailable genres:"))
+                table = [[genre] for genre in genres]
+                print(center_text(tabulate(table, headers=["Genre"], tablefmt="grid")))
 
-                genre = input(center_text("Enter genre: ").strip())
-                if not genre:
-                    raise ValueError("Genre cannot be empty")
-                year = input(center_text("Enter year: ").strip())
-                if not year:
-                    raise ValueError("Year cannot be empty")
+                # Genre input with case-insensitive validation
+                while True:
+                    print("Enter genre: ", end="")
+                    genre_input = input().strip()
+                    if not genre_input:
+                        print("Error: Genre cannot be empty or just spaces")
+                        continue
+                    # Convert input to lowercase for comparison
+                    genre_lower = genre_input.lower()
+                    # Find matching genre (case-insensitive)
+                    matching_genre = next((g for g in genres if g.lower() == genre_lower), None)
+                    if not matching_genre:
+                        print(f"Error: '{genre_input}' is not among the available genres. Please choose from the list below:")
+                        print(center_text("\nAvailable genres:"))
+                        print(center_text(tabulate(table, headers=["Genre"], tablefmt="grid")))
+                        continue
+                    # Use the original genre case for the database query
+                    genre = matching_genre
+                    break
+
+                # Year input with validation
+                while True:
+                    print("Enter year: ", end="")
+                    year = input().strip()
+                    if not year:
+                        print("Error: Year cannot be empty or just spaces")
+                        continue
+                    if not year.isdigit() or int(year) not in years:
+                        print(f"Error: '{year}' is not within the available year range ({min_year} to {max_year}). Please enter a valid year:")
+                        print(center_text(f"Films are available from {min_year} to {max_year}"))
+                        continue
+                    break
+
                 results = db.search_movies("genre", (genre, year))
                 if results:
                     print(center_text("\nFound movies:"))
@@ -115,7 +170,29 @@ def main():
                 continue
 
             elif choice == "3":
-                year = input(center_text("Enter year: ").strip())
+                # Fetch available years
+                years = db.get_available_years()
+                if not years:
+                    print("Unable to fetch available years")
+                    if not handle_menu_choice():
+                        break
+                    continue
+                min_year, max_year = min(years), max(years)
+                print(center_text(f"Films are available from {min_year} to {max_year}"))
+
+                # Year input with validation
+                while True:
+                    print("Enter year: ", end="")
+                    year = input().strip()
+                    if not year:
+                        print("Error: Year cannot be empty or just spaces")
+                        continue
+                    if not year.isdigit() or int(year) not in years:
+                        print(f"Error: '{year}' is not within the available year range ({min_year} to {max_year}). Please enter a valid year:")
+                        print(center_text(f"Films are available from {min_year} to {max_year}"))
+                        continue
+                    break
+
                 results = db.search_movies("year", year)
                 if results:
                     print(center_text("\nFound movies:"))
@@ -132,8 +209,46 @@ def main():
                 continue
 
             elif choice == "4":
-                start_year = input(center_text("Enter starting year: ").strip())
-                end_year = input(center_text("Enter ending year: ").strip())
+                # Fetch available years
+                years = db.get_available_years()
+                if not years:
+                    print("Unable to fetch available years")
+                    if not handle_menu_choice():
+                        break
+                    continue
+                min_year, max_year = min(years), max(years)
+                print(center_text(f"Films are available from {min_year} to {max_year}"))
+
+                # Start year input with validation
+                while True:
+                    print("Enter starting year: ", end="")
+                    start_year = input().strip()
+                    if not start_year:
+                        print("Error: Starting year cannot be empty or just spaces")
+                        continue
+                    if not start_year.isdigit() or int(start_year) not in years:
+                        print(f"Error: '{start_year}' is not within the available year range ({min_year} to {max_year}). Please enter a valid year:")
+                        print(center_text(f"Films are available from {min_year} to {max_year}"))
+                        continue
+                    break
+
+                # End year input with validation
+                while True:
+                    print("Enter ending year: ", end="")
+                    end_year = input().strip()
+                    if not end_year:
+                        print("Error: Ending year cannot be empty or just spaces")
+                        continue
+                    if not end_year.isdigit() or int(end_year) not in years:
+                        print(f"Error: '{end_year}' is not within the available year range ({min_year} to {max_year}). Please enter a valid year:")
+                        print(center_text(f"Films are available from {min_year} to {max_year}"))
+                        continue
+                    if int(end_year) < int(start_year):
+                        print(f"Error: Ending year ({end_year}) cannot be earlier than starting year ({start_year}). Please enter a valid year:")
+                        print(center_text(f"Films are available from {min_year} to {max_year}"))
+                        continue
+                    break
+
                 results = db.search_movies("year_range", (start_year, end_year))
                 if results:
                     print(center_text("\nFound movies:"))
@@ -168,15 +283,11 @@ def main():
             elif choice == "6":
                 break
 
-            else:
-                print(center_text("Incorrect choice. Choose a number from 1 to 6"))
-                continue
-
         except ValueError as e:
-            print(center_text(f"Error: {e}"))
+            print(f"Error: {e}")
             if not handle_menu_choice():
                 break
         except Exception as e:
-            print(center_text(f"An error occurred: {e}"))
+            print(f"An error occurred: {e}")
             if not handle_menu_choice():
                 break
