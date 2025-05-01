@@ -1,6 +1,7 @@
 from movie_search.database import MovieDatabase
 from movie_search.utils import center_text
 from tabulate import tabulate
+import math
 
 def handle_post_search():
     while True:
@@ -117,9 +118,15 @@ def main():
                     if not handle_menu_choice():
                         break
                     continue
-                print(center_text("\nAvailable genres:"))
-                table = [[genre] for genre in genres]
-                print(center_text(tabulate(table, headers=["Genre"], tablefmt="grid")))
+
+                # Split genres into two columns
+                num_genres = len(genres)
+                mid_point = math.ceil(num_genres / 2)  # Split into roughly equal parts
+                left_column = genres[:mid_point]
+                right_column = genres[mid_point:] + [None] * (mid_point - len(genres[mid_point:]))  # Pad with None if uneven
+                table = [[left_column[i], right_column[i] if right_column[i] else ""] for i in range(mid_point)]
+                print(center_text("\nList of genres:"))
+                print(center_text(tabulate(table, tablefmt="grid", colalign=("left", "left"))))
 
                 # Genre input with case-insensitive validation
                 while True:
@@ -134,8 +141,8 @@ def main():
                     matching_genre = next((g for g in genres if g.lower() == genre_lower), None)
                     if not matching_genre:
                         print(f"Error: '{genre_input}' is not among the available genres. Please choose from the list below:")
-                        print(center_text("\nAvailable genres:"))
-                        print(center_text(tabulate(table, headers=["Genre"], tablefmt="grid")))
+                        print(center_text("\nList of genres:"))
+                        print(center_text(tabulate(table, tablefmt="grid", colalign=("left", "left"))))
                         continue
                     # Use the original genre case for the database query
                     genre = matching_genre
